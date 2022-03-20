@@ -5,7 +5,7 @@ statements = { (statement)+ }
 statement = _{ (stat_if | stat_while | stat_for | stat_assign | stat_nop | stat_call | stat_case) }
 
 stat_if = { ^"if" ~ expr ~ ^"then" ~ statements
-      ~ (^"elsif" ~ expr ~ ^"then" ~ statements)* ~
+      ~ (^"elsif" ~ expr ~ ^"then" ~ statements)*
       ~ (^"else" ~ expr ~ statements)?
       ~ ^"end_if"
 }
@@ -53,7 +53,9 @@ op_binary = { (op_ne | op_ge | op_le | op_eq | op_lt | op_gt | op_add | op_sub |
 expr_unary = @{ op_not ~ WHITESPACE ~ expr}
 factor =  _{ ( "(" ~ expr ~ ")" | expr | call | comp_identifier | constant )}
 expr_binary = { factor ~ (op_binary ~ factor)* }
-expr = { (expr_unary | expr_binary)* }
+// FIXME: expr needs some extra work because of left recursion
+//expr = { (expr_unary | expr_binary)+ }
+expr = { "hi" }
 
 reserved_keywords = @{ (^"and_then" | ^"or_then" |
         ^"program" | var_scope | ^"begin" | ^"end" | ^"if" | ^"then" | ^"else" | ^"for" |
@@ -61,7 +63,7 @@ reserved_keywords = @{ (^"and_then" | ^"or_then" |
         ^"not" | ^"div" | ^"mod" | ^"procedure" | ^"function" )
     ~ !(ASCII_ALPHANUMERIC | "_" | "#")
 }
-var_scope = @{ ^"var" ~ ("_" (^"input" | ^"output" | ^"in_out" | ^"global" | ^"temp" |
+var_scope = @{ ^"var" ~ ("_" ~ (^"input" | ^"output" | ^"in_out" | ^"global" | ^"temp" |
             ^"stat" | ^"external" | ^"inst" | ^"config" ))? }
 
 data_types = @{ (^"__UXINT" | ^"__XINT" | ^"__XWORD" | ^"BIT" | ^"BOOL" | ^"pointer" |
@@ -69,7 +71,7 @@ data_types = @{ (^"__UXINT" | ^"__XINT" | ^"__XWORD" | ^"BIT" | ^"BOOL" | ^"poin
         ^"BYTE" | ^"LDATE_AND_TIME" | ^"DATE_AND_TIME" | ^"LDATE" | ^"DATE" | ^"LDT" |
         ^"DT" | ^"UDINT" | ^"ULINT" | ^"USINT" | ^"UINT" | ^"DINT" | ^"LINT" | ^"SINT"
         | ^"INT" | ^"LREAL" | ^"REAL" | ^"LTOD" | ^"DWORD" | ^"LWORD" | ^"WORD" |
-        tWString | tString | ^"LTIME" | ^"TIME" | ^"TOD" | ^"TIME_OF_DAY" | ) ~
+        tWString | tString | ^"LTIME" | ^"TIME" | ^"TOD" | ^"TIME_OF_DAY" ) ~
     !(ASCII_ALPHANUMERIC | "#" | "_") }
 
 tString = @{^"string" ~ ("(" ~ expr ~ ")")?}
@@ -92,19 +94,19 @@ number = @{
     ~ (^"e" ~ sign? ~ ASCII_DIGIT+)?
 }
 numeric = @{ ("10" | "16" | "8" | "2") ~ "#" ~ (ASCII_HEX_DIGIT | "_")+ }
-unsigned_integer = ("0" | ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT | "_")*)
+unsigned_integer = {("0" | ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT | "_")*)}
 time = @{("T#" | "LTIME#") ~ (unsigned_integer ~ time_div)+}
 time_div = _{( ^"ms" | ^"us" | ^"ns" | ^"s" | ^"m" | ^"h" | ^"d")}
 
 date = @{ ("LDATE" | "DATE") ~ "#" ~ date_fmt }
-date_fmt = _{ ASCII_NON_ZERO_DIGIT ~ ASCII_DIGIT{3} ~ "-" ~ ASCII_DIGIT{1,2} ~ "-" ~ ASCII_DIGIT{1,2} }
+date_fmt = _{ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT{3} ~ "-" ~ ASCII_DIGIT{1,2} ~ "-" ~ ASCII_DIGIT{1,2} }
 
 datetime = @{ ("LDT" | "DT" | "LDATE_AND_TIME" | "DATE_AND_TIME") ~ "#" ~ date_fmt ~ "-" ~ tod_fmt }
 
 tod = @{ (^"ltime_of_day" | ^"time_of_day" | ^"ltod" | ^"tod") ~ "#" ~ tod_fmt }
 tod_fmt = _{ ASCII_DIGIT{1,2} ~ ":" ~ ASCII_DIGIT{1,2} ~ ":" ~ ASCII_DIGIT{1,2} ~ ("." ~ ASCII_DIGIT+)? }
 // 213503d23h34m33s709ms551us615ns
-constant = _{ (string | wstring | time | datetime | tod | date | numeric | explicit_number | number)}
+constant = _{ (string | w_string | time | datetime | tod | date | numeric | explicit_number | number)}
 explicit_number = @{ data_types ~ "#" ~ (number | numeric)}
 
 // comments are not silent because we need to write them back out
