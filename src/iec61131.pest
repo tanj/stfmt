@@ -5,12 +5,7 @@ statements = { (statement)* }
 statement = _{ (stat_if | stat_while | ...) }
 
 number = @{ ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT)* }
-identifier = @{ (ASCII_ALPHA | single_underscore) ~ ASCII_ALPHANUMERIC* }
-// Spec:
-// https://help.codesys.com/webapp/_cds_identifiers;product=codesys;version=3.5.17.0
-// The underscore is recognized. For example, A_BCD and AB_CD are treated as two
-// different identifiers. Multiple consecutive underscores are not permitted.
-single_underscore = @{ "_" ((!"_") ~ ASCII_ALPHANUMERIC)* }
+identifier = @{ (ASCII_ALPHA | "_") ~ ASCII_ALPHANUMERIC* }
 call = { identifier ~ "(" ~ ( expr ! ( "," ~ expr )* )? ~ ")" }
 
 string = @{ "'" ~ inner ~ "'" }
