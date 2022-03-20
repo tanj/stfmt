@@ -1,12 +1,79 @@
 iec61131 = _{ SOI ~ statements ~ EOI }
 
-statements = { (statement)* }
+statements = { (statement)+ }
 
-statement = _{ (stat_if | stat_while | ...) }
+statement = _{ (stat_if | stat_while | stat_for | stat_assign | stat_nop | stat_call | stat_case) }
 
-number = @{ ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT)* }
-identifier = @{ (ASCII_ALPHA | "_") ~ ASCII_ALPHANUMERIC* }
-call = { identifier ~ "(" ~ ( expr ! ( "," ~ expr )* )? ~ ")" }
+stat_if = { ^"if" ~ expr ~ ^"then" ~ statments
+      ~ (^"elsif" ~ expr ~ ^"then" ~ statements)* ~
+      ~ (^"else" ~ expr ~ statements)?
+      ~ ^"end_if"
+}
+
+stat_while = { ^"while" ~ expr ~ ^"do" ~ statements ~ ^"end_while" }
+stat_for = { ^"for" ~ stat_assign ~ ^"to" ~ expr ~ (^"by" ~ expr)? ~ ^"do" ~ statements ~ ^"end_for" }
+stat_assign = { comp_identifier ~ assign_ops ~ expr ~ op_term}
+assign_ops = @{ (":" | ^"REF" | ^"r" | ^"s") ~ "=" }
+stat_call = { call ~ op_term}
+stat_nop = { op_term }
+stat_case = { ^"case" ~ expr ~ ^"of" ~ cases ~ ^"end_case"}
+case_label = { (comp_identifier | numeric | "-"? ~ unsigned_integer) }
+cases = { (case_label ~ ("," ~ case_label)* ~ ":" ~ statements)+ ~ (^"else" ~ statements)? }
+
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+index = !{"[" ~ (number | expr) ~ "]"}
+comp_identifier = @{ identifier ~ (op_content | index | (op_join ~ identifier))*}
+// compound atomic for calls
+call = ${ comp_identifier ~ "(" ~ args ~ ")" }
+// force non-atomic
+args = !{ ( expr ~ ( "," ~ expr )* )? }
+
+op_term = {";"}
+op_add = {"+"}
+op_sub = {"-"}
+op_mul = {"*"}
+op_div = {"/"}
+op_mod = {"MOD"}
+op_lt = {"<"}
+op_gt = {">"}
+op_ne = {"<>"}
+op_ge = {">="}
+op_le = {"<="}
+op_eq = {"="}
+op_or = {^"OR"}
+op_and = {^"AND"}
+op_xor = {^"XOR"}
+op_not = {^"NOT"}
+op_content = {"^"}
+op_join = {"."}
+
+op_binary = { (op_ne | op_ge | op_le | op_eq | op_lt | op_gt | op_add | op_sub |
+    op_mul | op_mod | op_div | op_or | op_and | op_xor) }
+
+expr_unary = @{ op_not ~ WHITESPACE ~ expr}
+factor =  _{ ( "(" ~ expr ~ ")" | expr | call | comp_identifier | constant )}
+expr_binary = { factor ~ (op_binary ~ factor)* }
+expr = { (expr_unary | expr_binary)* }
+
+reserved_keywords = @{ (^"and_then" | ^"or_then" |
+        ^"program" | var_scope | ^"begin" | ^"end" | ^"if" | ^"then" | ^"else" | ^"for" |
+        ^"while" | ^"repeat" | ^"do" | ^"to" | ^"downto" | ^"until" | ^"and" | ^"or" |
+        ^"not" | ^"div" | ^"mod" | ^"procedure" | ^"function" )
+    ~ !(ASCII_ALPHANUMERIC | "_" | "#")
+}
+var_scope = @{ ^"var" ~ ("_" (^"input" | ^"output" | ^"in_out" | ^"global" | ^"temp" |
+            ^"stat" | ^"external" | ^"inst" | ^"config" ))? }
+
+data_types = @{ (^"__UXINT" | ^"__XINT" | ^"__XWORD" | ^"BIT" | ^"BOOL" | ^"pointer" |
+        ^"union" | ^"__vector" |
+        ^"BYTE" | ^"LDATE_AND_TIME" | ^"DATE_AND_TIME" | ^"LDATE" | ^"DATE" | ^"LDT" |
+        ^"DT" | ^"UDINT" | ^"ULINT" | ^"USINT" | ^"UINT" | ^"DINT" | ^"LINT" | ^"SINT"
+        | ^"INT" | ^"LREAL" | ^"REAL" | ^"LTOD" | ^"DWORD" | ^"LWORD" | ^"WORD" |
+        tWString | tString | ^"LTIME" | ^"TIME" | ^"TOD" | ^"TIME_OF_DAY" | ) ~
+    !(ASCII_ALPHANUMERIC | "#" | "_") }
+
+tString = @{^"string" ~ ("(" ~ expr ~ ")")?}
+tWString = @{^"wstring" ~ ("(" ~ expr ~ ")")?}
 
 string = @{ "'" ~ inner ~ "'" }
 inner = @{ (!("'" | "$" ) ~ ANY)* ~ (escape ~ inner)?}
@@ -17,8 +84,32 @@ w_inner = @{ (!("\"" | "$" ) ~ ANY)* ~ (w_escape ~ w_inner)?}
 w_escape = @{ "$" ~ (ASCII_HEX_DIGIT{2} | ^"n" | ^"r" | ^"l" | ^"p" | ^"t" | "$" | "\"")}
 
 
+sign = _{("+" | "-")}
+number = @{
+      "-"?
+      ~ unsigned_integer
+      ~ ("." ~ ASCII_DIGIT ~ (ASCII_DIGIT | "_")*)?
+    ~ (^"e" ~ sign? ~ ASCII_DIGIT+)?
+}
+numeric = @{ ("10" | "16" | "8" | "2") ~ "#" ~ (ASCII_HEX_DIGIT | "_")+ }
+unsigned_integer = ("0" | ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT | "_")*)
+time = @{("T#" | "LTIME#") ~ (unsigned_integer ~ time_div)+}
+time_div = _{( ^"ms" | ^"us" | ^"ns" | ^"s" | ^"m" | ^"h" | ^"d")}
+
+date = @{ ("LDATE" | "DATE") ~ "#" ~ date_fmt }
+date_fmt = _{ ASCII_NON_ZERO_DIGIT ~ ASCII_DIGIT{3} ~ "-" ~ ASCII_DIGIT{1,2} ~ "-" ~ ASCII_DIGIT{1,2} }
+
+datetime = @{ ("LDT" | "DT" | "LDATE_AND_TIME" | "DATE_AND_TIME") ~ "#" ~ date_fmt ~ "-" ~ tod_fmt }
+
+tod = @{ (^"ltime_of_day" | ^"time_of_day" | ^"ltod" | ^"tod") ~ "#" ~ tod_fmt }
+tod_fmt = _{ ASCII_DIGIT{1,2} ~ ":" ~ ASCII_DIGIT{1,2} ~ ":" ~ ASCII_DIGIT{1,2} ~ ("." ~ ASCII_DIGIT+)? }
+// 213503d23h34m33s709ms551us615ns
+constant = _{ (string | wstring | time | datetime | tod | date | numeric | explicit_number | number)}
+explicit_number = @{ data_types ~ "#" ~ (number | numeric)}
+
 // comments are not silent because we need to write them back out
 multi_line_comment = { "(*" ~ (!"*)" ~ ANY)* ~ "*)" }
 single_line_comment = { "//" ~ (!NEWLINE ~ ANY)* }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }
+COMMENT = _{(single_line_comment | multi_line_comment)}
