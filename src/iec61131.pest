@@ -4,7 +4,7 @@ statements = { (statement)+ }
 
 statement = _{ (stat_if | stat_while | stat_for | stat_assign | stat_nop | stat_call | stat_case) }
 
-stat_if = { ^"if" ~ expr ~ ^"then" ~ statments
+stat_if = { ^"if" ~ expr ~ ^"then" ~ statements
       ~ (^"elsif" ~ expr ~ ^"then" ~ statements)* ~
       ~ (^"else" ~ expr ~ statements)?
       ~ ^"end_if"
