@@ -1,0 +1,29 @@
+iec61131 = _{ SOI ~ statements ~ EOI }
+
+statements = { (statement)* }
+
+statement = _{ (stat_if | stat_while | ...) }
+
+number = @{ ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT)* }
+identifier = @{ (ASCII_ALPHA | single_underscore) ~ ASCII_ALPHANUMERIC* }
+// Spec:
+// https://help.codesys.com/webapp/_cds_identifiers;product=codesys;version=3.5.17.0
+// The underscore is recognized. For example, A_BCD and AB_CD are treated as two
+// different identifiers. Multiple consecutive underscores are not permitted.
+single_underscore = @{ "_" ((!"_") ~ ASCII_ALPHANUMERIC)* }
+call = { identifier ~ "(" ~ ( expr ! ( "," ~ expr )* )? ~ ")" }
+
+string = @{ "'" ~ inner ~ "'" }
+inner = @{ (!("'" | "$" ) ~ ANY)* ~ (escape ~ inner)?}
+escape = @{ "$" ~ (ASCII_HEX_DIGIT{2} | ^"n" | ^"r" | ^"l" | ^"p" | ^"t" | "$" | "'")}
+
+w_string = @{ "\"" ~ w_inner ~ "\"" }
+w_inner = @{ (!("\"" | "$" ) ~ ANY)* ~ (w_escape ~ w_inner)?}
+w_escape = @{ "$" ~ (ASCII_HEX_DIGIT{2} | ^"n" | ^"r" | ^"l" | ^"p" | ^"t" | "$" | "\"")}
+
+
+// comments are not silent because we need to write them back out
+multi_line_comment = { "(*" ~ (!"*)" ~ ANY)* ~ "*)" }
+single_line_comment = { "//" ~ (!NEWLINE ~ ANY)* }
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
