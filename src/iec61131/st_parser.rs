@@ -343,4 +343,58 @@ mod tests {
             };
         }
     }
+
+    mod identifier_rules {
+        use super::*;
+
+        #[test]
+        fn test_identifier() {
+            parses_to! {
+                parser: StParser,
+                input: "_xIsValidIdent1",
+                rule: Rule::identifier,
+                tokens: [identifier(0, 15)]
+            };
+        }
+
+        #[test]
+        fn test_comp_identifier_index() {
+            parses_to! {
+                parser: StParser,
+                input: "aSomething[0]",
+                rule: Rule::comp_identifier,
+                tokens: [comp_identifier(0, 13)]
+            };
+        }
+
+        #[test]
+        fn test_comp_identifier_content() {
+            parses_to! {
+                parser: StParser,
+                input: "pSomething^",
+                rule: Rule::comp_identifier,
+                tokens: [comp_identifier(0, 11)]
+            };
+        }
+
+        #[test]
+        fn test_comp_identifier_member() {
+            parses_to! {
+                parser: StParser,
+                input: "oSomething.member",
+                rule: Rule::comp_identifier,
+                tokens: [comp_identifier(0, 17)]
+            };
+        }
+
+        #[test]
+        fn test_comp_identifier_compounded() {
+            parses_to! {
+                parser: StParser,
+                input: "oSomething.member[1].hello[hi]",
+                rule: Rule::comp_identifier,
+                tokens: [comp_identifier(0, 30)]
+            };
+        }
+    }
 }

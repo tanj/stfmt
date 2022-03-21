@@ -21,7 +21,7 @@ case_label = { (comp_identifier | numeric | "-"? ~ unsigned_integer) }
 cases = { (case_label ~ ("," ~ case_label)* ~ ":" ~ statements)+ ~ (^"else" ~ statements)? }
 
 identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-index = !{"[" ~ (number | expr) ~ "]"}
+index = {"[" ~ (number | expr) ~ "]"}
 comp_identifier = @{ identifier ~ (op_content | index | (op_join ~ identifier))*}
 // compound atomic for calls
 call = ${ comp_identifier ~ "(" ~ args ~ ")" }
