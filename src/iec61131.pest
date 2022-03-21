@@ -95,13 +95,13 @@ number = @{
 }
 numeric = @{ ("10" | "16" | "8" | "2") ~ "#" ~ (ASCII_HEX_DIGIT | "_")+ }
 unsigned_integer = {("0" | ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT | "_")*)}
-time = @{("T#" | "LTIME#") ~ (unsigned_integer ~ time_div)+}
+time = @{(^"TIME" |  ^"LTIME" | ^"T"  ) ~ "#" ~ (unsigned_integer ~ time_div)+}
 time_div = _{( ^"ms" | ^"us" | ^"ns" | ^"s" | ^"m" | ^"h" | ^"d")}
 
 date = @{ ("LDATE" | "DATE") ~ "#" ~ date_fmt }
 date_fmt = _{ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT{3} ~ "-" ~ ASCII_DIGIT{1,2} ~ "-" ~ ASCII_DIGIT{1,2} }
 
-datetime = @{ ("LDT" | "DT" | "LDATE_AND_TIME" | "DATE_AND_TIME") ~ "#" ~ date_fmt ~ "-" ~ tod_fmt }
+datetime = @{ (^"LDT" | ^"DT" | ^"LDATE_AND_TIME" | ^"DATE_AND_TIME") ~ "#" ~ date_fmt ~ "-" ~ tod_fmt }
 
 tod = @{ (^"ltime_of_day" | ^"time_of_day" | ^"ltod" | ^"tod") ~ "#" ~ tod_fmt }
 tod_fmt = _{ ASCII_DIGIT{1,2} ~ ":" ~ ASCII_DIGIT{1,2} ~ ":" ~ ASCII_DIGIT{1,2} ~ ("." ~ ASCII_DIGIT+)? }
@@ -114,4 +114,4 @@ multi_line_comment = { "(*" ~ (!"*)" ~ ANY)* ~ "*)" }
 single_line_comment = { "//" ~ (!NEWLINE ~ ANY)* }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }
-COMMENT = _{(single_line_comment | multi_line_comment)}
+COMMENT = ${(single_line_comment | multi_line_comment)}
