@@ -1,8 +1,7 @@
-extern crate pest;
-extern crate pest_derive;
+extern crate peg;
 
-use iec61131::st_parser::StParser;
-use std::fs;
+// use iec61131::st_parser::StParser;
+// use std::fs;
 
 mod iec61131;
 
